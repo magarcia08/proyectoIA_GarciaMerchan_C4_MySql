@@ -100,10 +100,9 @@ source almacenamiento/mysql/consultas.sql
 
 | Campo | Dato |
 |---|---|
-| Nombre | Tu nombre aquí |
-| Campo | Desarrollo de Software |
-| Institución | Tu institución aquí |
-| Fecha | Marzo 2026 |
+| Nombre | María Alejandra |
+| Camper | Desarrollo de Software |
+| Fecha | 27 Marzo 2026 |
 
 ---
 
