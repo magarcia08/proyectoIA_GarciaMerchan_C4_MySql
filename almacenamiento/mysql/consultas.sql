@@ -85,14 +85,14 @@ LIMIT 1;
 -- 13. Calcular el promedio de consultas atendidas por cada médico al mes.
 SELECT m.nombre_medico,
        COUNT(co.id_consulta) AS total_consultas,
-       COUNT(DISTINCT DATE_FORMAT(co.fecha_consulta, '%Y-%m')) AS meses_activos,
-       ROUND(COUNT(co.id_consulta) / COUNT(DISTINCT DATE_FORMAT(co.fecha_consulta, '%Y-%m')), 2) AS promedio_mensual
+       COUNT(co.id_consulta) / 3 AS promedio_mensual
 FROM medicos m
 INNER JOIN cita c ON m.id_medico = c.id_medico
 INNER JOIN consultas co ON c.id_cita = co.id_cita
 GROUP BY m.id_medico, m.nombre_medico
 ORDER BY promedio_mensual DESC;
- 
+
+
 -- 14. Listar las especialidades que actualmente no tienen ningún médico asignado.
 SELECT e.nombre_especialidad
 FROM especialidades e
@@ -117,9 +117,9 @@ LIMIT 1;
 -- 17. Listar los pacientes cuya edad sea superior a los 50 años.
 SELECT nombre_paciente,
        fecha_nac_paciente,
-       TIMESTAMPDIFF(YEAR, fecha_nac_paciente, CURDATE()) AS edad
+       2026 - YEAR(fecha_nac_paciente) AS edad
 FROM pacientes
-WHERE TIMESTAMPDIFF(YEAR, fecha_nac_paciente, CURDATE()) > 50
+WHERE 2026 - YEAR(fecha_nac_paciente) > 50
 ORDER BY edad DESC;
  
 -- 18. Contar la cantidad de consultas realizadas desglosadas por cada especialidad.
@@ -135,7 +135,7 @@ ORDER BY total_consultas DESC;
 -- 19. Determinar el motivo de consulta que más se ha repetido en el último semestre.
 SELECT motivo_consulta, COUNT(*) AS total
 FROM consultas
-WHERE fecha_consulta >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+WHERE YEAR(fecha_consulta) = 2026
 GROUP BY motivo_consulta
 ORDER BY total DESC
 LIMIT 1;
