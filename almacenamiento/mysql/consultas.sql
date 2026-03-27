@@ -3,137 +3,151 @@
 
 USE medisistema;
 
--- 1. Listar todos los médicos junto con sus especialidades
+
+-- 1. Listar todos los médicos junto con sus especialidades (utilizando la tabla intermedia).
 SELECT m.nombre_medico, e.nombre_especialidad
 FROM medicos m
-JOIN medico_especialidad me ON m.id_medico = me.id_medico
-JOIN especialidades e ON me.id_especialidad = e.id_especialidad;
-
--- 2. Buscar médicos con especialidad Pediatría
-SELECT m.nombre_medico
+INNER JOIN medico_especialidad me ON m.id_medico = me.id_medico
+INNER JOIN especialidades e ON me.id_especialidad = e.id_especialidad;
+ 
+-- 2. Buscar médicos que cuenten con la especialidad de "Pediatría".
+SELECT m.nombre_medico, e.nombre_especialidad
 FROM medicos m
-JOIN medico_especialidad me ON m.id_medico = me.id_medico
-JOIN especialidades e ON me.id_especialidad = e.id_especialidad
+INNER JOIN medico_especialidad me ON m.id_medico = me.id_medico
+INNER JOIN especialidades e ON me.id_especialidad = e.id_especialidad
 WHERE e.nombre_especialidad = 'Pediatría';
-
--- 3. Contar el total de médicos
+ 
+-- 3. Contar el total de médicos registrados en la institución.
 SELECT COUNT(*) AS total_medicos
 FROM medicos;
-
--- 4. Médicos con más de 15 años de experiencia
-SELECT nombre_medico, experiencia_medico
+ 
+-- 4. Obtener los médicos que tienen más de 15 años de experiencia profesional.
+SELECT nombre_medico, experiencia_medico AS años_experiencia
 FROM medicos
-WHERE experiencia_medico > 15;
-
--- 5. Listar especialidades únicas
+WHERE experiencia_medico > 15
+ORDER BY experiencia_medico DESC;
+ 
+-- 5. Listar las especialidades únicas que ofrece el centro médico.
 SELECT DISTINCT nombre_especialidad
-FROM especialidades;
-
--- 6. Pacientes en orden alfabético por apellido
-SELECT nombre_paciente
+FROM especialidades
+ORDER BY nombre_especialidad;
+ 
+ 
+-- 6. Mostrar todos los pacientes registrados en orden alfabético por apellido.
+SELECT nombre_paciente, identificacion_paciente, tel_paciente
 FROM pacientes
 ORDER BY nombre_paciente ASC;
-
--- 7. Buscar paciente por número de documento
+ 
+-- 7. Buscar la información de un paciente mediante su número de documento.
 SELECT *
 FROM pacientes
 WHERE identificacion_paciente = 20234567;
-
--- 8. Consultas programadas para hoy
-SELECT c.*, p.nombre_paciente, m.nombre_medico
+ 
+-- 8. Listar las consultas programadas para el día de hoy.
+SELECT c.id_cita, m.nombre_medico, p.nombre_paciente,
+       c.tipo_cita, c.fecha_cita, c.estado_cita
 FROM cita c
-JOIN pacientes p ON c.id_paciente = p.id_paciente
-JOIN medicos m ON c.id_medico = m.id_medico
+INNER JOIN medicos m ON c.id_medico = m.id_medico
+INNER JOIN pacientes p ON c.id_paciente = p.id_paciente
 WHERE c.fecha_cita = CURDATE()
 AND c.estado_cita = 'pendiente';
-
--- 9. Contar citas completadas
+ 
+-- 9. Contar cuántas citas han sido marcadas como "Completadas".
 SELECT COUNT(*) AS citas_completadas
 FROM cita
 WHERE estado_cita = 'completada';
-
--- 10. Historial completo de citas de un paciente
-SELECT c.fecha_cita, c.tipo_cita, c.estado_cita,
-       co.motivo_consulta, co.diagnostico
+ 
+-- 10. Obtener el historial completo de citas de un paciente específico.
+SELECT c.id_cita, c.fecha_cita, c.tipo_cita, c.estado_cita,
+       co.motivo_consulta, co.diagnostico, co.recomendacion
 FROM cita c
 LEFT JOIN consultas co ON c.id_cita = co.id_cita
-WHERE c.id_paciente = 1;
-
--- 11. Médicos que han atendido más de 10 pacientes distintos
+WHERE c.id_paciente = 1
+ORDER BY c.fecha_cita DESC;
+ 
+ 
+-- 11. Identificar a los médicos que han atendido a más de 10 pacientes distintos.
 SELECT m.nombre_medico, COUNT(DISTINCT c.id_paciente) AS total_pacientes
 FROM medicos m
-JOIN cita c ON m.id_medico = c.id_medico
+INNER JOIN cita c ON m.id_medico = c.id_medico
 WHERE c.estado_cita = 'completada'
 GROUP BY m.id_medico, m.nombre_medico
 HAVING COUNT(DISTINCT c.id_paciente) > 10;
-
--- 12. Último diagnóstico de un paciente
-SELECT co.diagnostico, co.fecha_consulta
+ 
+-- 12. Mostrar el último diagnóstico registrado para un paciente determinado.
+SELECT co.diagnostico, co.fecha_consulta, co.motivo_consulta
 FROM consultas co
-JOIN cita c ON co.id_cita = c.id_cita
+INNER JOIN cita c ON co.id_cita = c.id_cita
 WHERE c.id_paciente = 1
 ORDER BY co.fecha_consulta DESC
 LIMIT 1;
-
--- 13. Promedio de consultas por médico al mes
+ 
+-- 13. Calcular el promedio de consultas atendidas por cada médico al mes.
 SELECT m.nombre_medico,
-       COUNT(co.id_consulta) / COUNT(DISTINCT DATE_FORMAT(co.fecha_consulta, '%Y-%m')) AS promedio_mensual
+       COUNT(co.id_consulta) AS total_consultas,
+       COUNT(DISTINCT DATE_FORMAT(co.fecha_consulta, '%Y-%m')) AS meses_activos,
+       ROUND(COUNT(co.id_consulta) / COUNT(DISTINCT DATE_FORMAT(co.fecha_consulta, '%Y-%m')), 2) AS promedio_mensual
 FROM medicos m
-JOIN cita c ON m.id_medico = c.id_medico
-JOIN consultas co ON c.id_cita = co.id_cita
-GROUP BY m.id_medico, m.nombre_medico;
-
--- 14. Especialidades sin médicos asignados
+INNER JOIN cita c ON m.id_medico = c.id_medico
+INNER JOIN consultas co ON c.id_cita = co.id_cita
+GROUP BY m.id_medico, m.nombre_medico
+ORDER BY promedio_mensual DESC;
+ 
+-- 14. Listar las especialidades que actualmente no tienen ningún médico asignado.
 SELECT e.nombre_especialidad
 FROM especialidades e
 LEFT JOIN medico_especialidad me ON e.id_especialidad = me.id_especialidad
 WHERE me.id_medico IS NULL;
-
--- 15. Pacientes con citas canceladas
-SELECT DISTINCT p.nombre_paciente
+ 
+-- 15. Filtrar los pacientes que tienen citas en estado "Cancelada".
+SELECT DISTINCT p.nombre_paciente, p.identificacion_paciente, p.tel_paciente
 FROM pacientes p
-JOIN cita c ON p.id_paciente = c.id_paciente
+INNER JOIN cita c ON p.id_paciente = c.id_paciente
 WHERE c.estado_cita = 'cancelada';
-
--- 16. Médico con mayor volumen de consultas
+ 
+-- 16. Encontrar al médico con el mayor volumen de consultas realizadas.
 SELECT m.nombre_medico, COUNT(co.id_consulta) AS total_consultas
 FROM medicos m
-JOIN cita c ON m.id_medico = c.id_medico
-JOIN consultas co ON c.id_cita = co.id_cita
+INNER JOIN cita c ON m.id_medico = c.id_medico
+INNER JOIN consultas co ON c.id_cita = co.id_cita
 GROUP BY m.id_medico, m.nombre_medico
 ORDER BY total_consultas DESC
 LIMIT 1;
-
--- 17. Pacientes mayores de 50 años
+ 
+-- 17. Listar los pacientes cuya edad sea superior a los 50 años.
 SELECT nombre_paciente,
+       fecha_nac_paciente,
        TIMESTAMPDIFF(YEAR, fecha_nac_paciente, CURDATE()) AS edad
 FROM pacientes
-WHERE TIMESTAMPDIFF(YEAR, fecha_nac_paciente, CURDATE()) > 50;
-
--- 18. Consultas por especialidad
+WHERE TIMESTAMPDIFF(YEAR, fecha_nac_paciente, CURDATE()) > 50
+ORDER BY edad DESC;
+ 
+-- 18. Contar la cantidad de consultas realizadas desglosadas por cada especialidad.
 SELECT e.nombre_especialidad, COUNT(co.id_consulta) AS total_consultas
 FROM especialidades e
-JOIN medico_especialidad me ON e.id_especialidad = me.id_especialidad
-JOIN medicos m ON me.id_medico = m.id_medico
-JOIN cita c ON m.id_medico = c.id_medico
-JOIN consultas co ON c.id_cita = co.id_cita
-GROUP BY e.id_especialidad, e.nombre_especialidad;
-
--- 19. Motivo de consulta más repetido en el último semestre
+INNER JOIN medico_especialidad me ON e.id_especialidad = me.id_especialidad
+INNER JOIN medicos m ON me.id_medico = m.id_medico
+INNER JOIN cita c ON m.id_medico = c.id_medico
+INNER JOIN consultas co ON c.id_cita = co.id_cita
+GROUP BY e.id_especialidad, e.nombre_especialidad
+ORDER BY total_consultas DESC;
+ 
+-- 19. Determinar el motivo de consulta que más se ha repetido en el último semestre.
 SELECT motivo_consulta, COUNT(*) AS total
 FROM consultas
 WHERE fecha_consulta >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
 GROUP BY motivo_consulta
 ORDER BY total DESC
 LIMIT 1;
-
--- 20. Médico con fecha de última actividad
+ 
+-- 20. Mostrar cada médico junto con la fecha de su última actividad registrada.
 SELECT m.nombre_medico, MAX(co.fecha_consulta) AS ultima_actividad
 FROM medicos m
-JOIN cita c ON m.id_medico = c.id_medico
-JOIN consultas co ON c.id_cita = co.id_cita
-GROUP BY m.id_medico, m.nombre_medico;
-
+INNER JOIN cita c ON m.id_medico = c.id_medico
+INNER JOIN consultas co ON c.id_cita = co.id_cita
+GROUP BY m.id_medico, m.nombre_medico
+ORDER BY ultima_actividad DESC;
+ 
 
 
 
